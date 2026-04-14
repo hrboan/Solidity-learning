@@ -42,7 +42,7 @@ describe("My Token", () => {
     });
   });
   describe("Transfer", () => {
-    it("shoud have 0.5MT", async () => {
+    it("should have 0.5MT", async () => {
     const signer0 = signers[0];
     const signer1 = signers[1];
     await expect(
@@ -69,5 +69,33 @@ describe("My Token", () => {
     )
     ).to.be.revertedWith("insufficient balance");
   });
+  });
+  describe("TransferFrom", () => {
+    it("should emit Approval event", async () => {
+      const signer1 = signers[1];
+      await expect(
+        myTokenC.approve(signer1.address, hre.ethers.parseUnits("10", decimals))
+      )
+        .to.emit(myTokenC, "Approval")
+        .withArgs(signer1.address, hre.ethers.parseUnits("10", decimals));
+    });
+    it("should allow signer1 to transfer signer0's tokens after approval", async () => {
+      const signer0 = signers[0];
+      const signer1 = signers[1];
+      const transferAmount = hre.ethers.parseUnits("5", decimals); 
+
+      await myTokenC.approve(signer1.address, transferAmount);
+      await expect(
+        myTokenC.connect(signer1).transferFrom(
+          signer0.address,
+          signer1.address,
+          transferAmount
+        )
+      )
+        .to.emit(myTokenC, "Transfer")
+        .withArgs(signer0.address, signer1.address, transferAmount);
+
+      expect(await myTokenC.balanceOf(signer1.address)).to.equal(transferAmount);
+    });
   });
 });
