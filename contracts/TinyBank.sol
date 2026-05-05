@@ -5,14 +5,11 @@ import "./ManagedAccess.sol";
 
 interface IMyToken {
     function transfer(uint256 amount, address to) external;
-
     function transferFrom(address from, address to, uint256 amount) external;
-
     function mint(uint256 amount, address owner) external;
-
 }
 
-contract TinyBank is ManagedAccess{
+contract TinyBank is ManagedAccess {
     event Staked(address from, uint256 amount);
     event Withdraw(uint256 amount, address to);
 
@@ -23,10 +20,11 @@ contract TinyBank is ManagedAccess{
 
     mapping(address => uint256) public lastClaimedBlock;
 
-    uint defaultRewardPerBlock = 1 *10**18;
-    uint rewardPerBlock;
+    uint256 public defaultRewardPerBlock = 1 * 10**18;
+    uint256 public rewardPerBlock; 
 
-    constructor(IMyToken _stakingToken) ManagedAccess(msg.sender, msg.sender){
+    constructor(IMyToken _stakingToken, address[] memory _managers) ManagedAccess(msg.sender, _managers) {
+        require(_managers.length >= 3, "Need at least 3 managers");
         stakingToken = _stakingToken;
         rewardPerBlock = defaultRewardPerBlock;
     }
@@ -41,8 +39,9 @@ contract TinyBank is ManagedAccess{
         _;
     }
 
-    function setRewardPerBlock(uint256 _amount) external onlyManager(){
+    function setRewardPerBlock(uint256 _amount) external onlyAllConfirmed {
         rewardPerBlock = _amount;
+        resetConfirmations();
     }
 
     function stake(uint256 _amount) external updateReward(msg.sender) {

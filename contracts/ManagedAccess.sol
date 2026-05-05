@@ -3,11 +3,18 @@ pragma solidity ^0.8.28;
 
 abstract contract ManagedAccess {
     address public owner;
-    address public manager;
+    address[] public managers;
+    mapping(address => bool) public isManager;
 
-    constructor(address _owner, address _manager) {
+    mapping(address => bool) public isConfirmed;
+    uint256 public confirmCount;
+
+    constructor(address _owner, address[] memory _managers) {
         owner = _owner;
-        manager = _manager;
+        for(uint i = 0; i < _managers.length; i++) {
+            isManager[_managers[i]] = true;
+            managers.push(_managers[i]);
+        }
     }
 
     modifier onlyOwner() {
@@ -16,10 +23,27 @@ abstract contract ManagedAccess {
     }
 
     modifier onlyManager() {
-        require(
-            msg.sender == manager,
-            "You are not authorized to manage this contract"
-        );
+        require(isManager[msg.sender], "You are not authorized to manage this token");
         _;
+    }
+
+    modifier onlyAllConfirmed() {
+        require(isManager[msg.sender], "You are not a manager");
+        require(confirmCount == managers.length && managers.length > 0, "Not all confirmed yet");
+        _;
+    }
+
+    function confirm() external {
+        require(isManager[msg.sender], "You are not a manager");
+        require(!isConfirmed[msg.sender], "Already confirmed");
+        isConfirmed[msg.sender] = true;
+        confirmCount++;
+    }
+
+    function resetConfirmations() internal {
+        for(uint i = 0; i < managers.length; i++) {
+            isConfirmed[managers[i]] = false;
+        }
+        confirmCount = 0;
     }
 }
